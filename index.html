@@ -1,0 +1,895 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Klinik Tedavi Planlayıcı</title>
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#0d7580">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Klinik">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.min.js"></script>
+<style>
+:root{--bg:#f3f5f7;--card:#fff;--ink:#1c2630;--muted:#687480;--line:#e1e6ea;--acc:#0d7580;--acc-d:#0a5d66;--acc2:#e5f3f4;--warn:#9a4d05;--warnbg:#fff6e5;--bad:#b42318;--badbg:#fdeceb;--ok:#177a3c;--okbg:#e9f6ee;--r:10px}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 "Segoe UI",system-ui,sans-serif}
+header{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+.bar{max-width:1240px;margin:0 auto;padding:10px 16px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.brand{font-weight:700;font-size:17px;margin-right:auto;line-height:1.2}
+.brand small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+nav{display:flex;gap:4px;flex-wrap:wrap}
+nav button{border:0;background:transparent;padding:8px 12px;border-radius:8px;color:var(--muted);font-weight:600}
+nav button.on{background:var(--acc2);color:var(--acc-d)}
+#fstat{font-size:12px;color:var(--muted);width:100%;text-align:right;margin-top:-6px}
+main{max-width:1240px;margin:0 auto;padding:18px 16px 70px}
+#banner{max-width:1240px;margin:0 auto;padding:0 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:14px}
+h1{font-size:23px;margin:0 0 2px}h2{font-size:16px;margin:0 0 12px}
+.head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.muted{color:var(--muted)}.small{font-size:12.5px}
+p{margin:0}
+button{font:inherit;border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 12px;cursor:pointer;color:var(--ink)}
+button:hover{border-color:#b9c2ca}
+button.pri{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
+button.pri:hover{background:var(--acc-d)}
+button.ghost{border-color:transparent;background:transparent;color:var(--acc)}
+button.danger{color:var(--bad)}
+button:disabled{opacity:.5;cursor:default}
+input,select,textarea{font:inherit;border:1px solid #cdd4da;border-radius:7px;padding:6px 8px;background:#fff;color:var(--ink);max-width:100%}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--acc2);border-color:var(--acc)}
+label{display:flex;flex-direction:column;gap:3px;font-size:13px;color:var(--muted)}
+label.chk{flex-direction:row;align-items:center;gap:6px;color:var(--ink)}
+table{width:100%;border-collapse:collapse}
+th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:600}
+.n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+tr.row{cursor:pointer}tr.row:hover td{background:#f7fafb}
+.due{color:var(--bad);font-weight:600}
+.crumb{font-size:13px;color:var(--muted);margin-bottom:6px}
+.crumb a{color:var(--acc);cursor:pointer}
+.notice{border-radius:8px;padding:10px 12px;margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.notice.warn{background:var(--warnbg);color:var(--warn)}
+.notice.ok{background:var(--okbg);color:var(--ok)}
+.notice.bad{background:var(--badbg);color:var(--bad)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+.stat span{display:block;font-size:12.5px;color:var(--muted)}.stat b{font-size:21px}
+.stat.due b{color:var(--bad)}
+.empty{text-align:center;color:var(--muted);padding:28px}
+.search{width:100%;margin-bottom:10px;padding:9px 12px}
+.badge{display:inline-block;font-size:11.5px;padding:2px 8px;border-radius:20px;background:var(--acc2);color:var(--acc-d);font-weight:600}
+.badge.s-teklif{background:#eef1f4;color:#4b5560}.badge.s-kabul{background:#e8f0fe;color:#1d4ed8}.badge.s-tedavide{background:var(--warnbg);color:var(--warn)}.badge.s-tamam{background:var(--okbg);color:var(--ok)}.badge.s-iptal{background:var(--badbg);color:var(--bad)}
+/* plan */
+.planhead{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px}
+.planhead .grow{flex:1;min-width:220px}.planhead .grow input{font-size:18px;font-weight:600;width:100%}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-bottom:14px}
+.opt{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:4px}
+.opt.mid{border:2px solid var(--acc);box-shadow:0 2px 10px rgba(13,117,128,.08)}
+.opt-h{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.opt .big{font-size:26px;font-weight:700;letter-spacing:-.01em;margin-top:4px}
+.opt ul{margin:6px 0 8px;padding:0;list-style:none;font-size:13.5px}
+.opt li{padding:2px 0}
+.opt button{margin-top:auto;align-self:flex-start}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:14px;align-items:start}
+.side{position:sticky;top:84px}
+@media(max-width:980px){.grid{grid-template-columns:1fr}.side{position:static}.stats{grid-template-columns:1fr}}
+.addgrid{display:grid;grid-template-columns:1fr 1.4fr;gap:10px;margin-bottom:10px}
+.variants{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.var{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:8px 12px;min-width:150px;text-align:left}
+.var span{font-size:13px}.var b{font-size:15px}
+.var.on{border:2px solid var(--acc);background:var(--acc2);padding:7px 11px}
+.teeth{background:#f8fafb;border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:10px;overflow-x:auto}
+.tlabel{font-size:12.5px;color:var(--muted);margin-bottom:6px}
+.trow{display:flex;gap:3px;margin:3px 0;min-width:max-content}
+.tooth{width:34px;padding:6px 0;font-size:12.5px;border-radius:6px;text-align:center}
+.tooth.gap{margin-right:12px}
+.tooth.on{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
+.tooth.used{box-shadow:inset 0 -3px 0 #f0b44c}
+.addrow{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+.addrow .grow{flex:1;min-width:160px}.addrow .grow input{width:100%}
+.addrow input[type=number]{width:90px}
+#addPrev{font-size:13px;color:var(--muted);padding-bottom:8px}
+.items td{padding:10px 8px}
+.items .sub{font-size:12.5px;color:var(--muted)}
+.items input.qty{width:62px;text-align:right}
+.items select{max-width:220px}
+.alts{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.alt{font-size:12.5px;padding:4px 10px;border-radius:20px;background:#f6f8f9;white-space:nowrap}
+.items tr:has(+ .altrow) td{border-bottom:0;padding-bottom:4px}
+.items .altrow td{padding-top:0}
+.alt.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+.alt i{font-style:normal;opacity:.75}
+tr.done td{background:#f5fbf7}
+.kv{display:flex;justify-content:space-between;align-items:center;padding:6px 0;gap:10px}
+.kv.total{border-top:1px solid var(--line);margin-top:6px;padding-top:10px;font-size:18px}
+.rulebox{background:var(--acc2);color:var(--acc-d);border-radius:8px;padding:9px 11px;font-size:13px;margin:8px 0}
+input.pct{width:72px;text-align:right}
+table.pay td{padding:9px 6px}
+table.pay tr.on td{background:var(--acc2)}
+table.pay label{flex-direction:row;align-items:center;gap:7px;color:var(--ink);font-size:14.5px;cursor:pointer}
+.agreed{margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+.agreed b{font-size:18px}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+/* fiyat listesi */
+.tcard{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:10px}
+.tline{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px}
+.tline .tname{font-weight:600;flex:1;min-width:200px}
+.vt td{border:0;padding:3px 4px}
+.vt input.vname{width:100%}
+.vt input.price{width:120px;text-align:right}
+/* formlar */
+.form{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form .wide{grid-column:1/-1}
+.form input,.form textarea,.form select{width:100%}
+dialog{border:0;border-radius:12px;padding:20px;width:min(560px,94vw);box-shadow:0 20px 60px rgba(0,0,0,.25)}
+dialog::backdrop{background:rgba(20,30,40,.4)}
+.dlgbtns{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.payform{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px}
+.payform input[type=number]{width:120px}
+.rules input{width:110px;text-align:right}
+.dz{border:1px solid var(--badbg);background:#fffafa;border-radius:var(--r);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+header{padding-top:env(safe-area-inset-top)}
+.login{max-width:400px;margin:8vh auto;background:#fff;border:1px solid var(--line);border-radius:14px;padding:26px}
+.login h1{margin-bottom:4px}.login label{margin-top:12px}.login input{width:100%;padding:10px 12px}
+.login .pri{width:100%;margin-top:18px;padding:11px}
+.login .links{display:flex;justify-content:space-between;margin-top:14px;font-size:13.5px}
+.login .links a{color:var(--acc);cursor:pointer}
+.loading{text-align:center;color:var(--muted);padding:15vh 0}
+@media(max-width:700px){
+  input,select,textarea{font-size:16px}
+  .items th:nth-child(5),.items td:nth-child(5){display:none}
+  .opt .big{font-size:23px}
+  main{padding:12px 12px 60px}.card{padding:13px}
+  .bar{padding:8px 12px}
+}
+#print{display:none}
+@media print{
+  @page{size:A4;margin:14mm}
+  header,main,#banner,dialog{display:none!important}
+  body{background:#fff;font-size:11.5pt}
+  #print{display:block;color:#000}
+  #print table{font-size:10.5pt}
+  #print th,#print td{padding:5px 6px;border-bottom:1px solid #ccc}
+  #print .ph{display:flex;justify-content:space-between;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:12px}
+  #print h1{font-size:18pt;margin:0}
+  #print h3{font-size:12pt;margin:16px 0 6px}
+  #print .alts-p{font-size:9pt;color:#444}
+  #print .tot td{font-weight:700}
+  #print .sig{display:flex;justify-content:space-between;margin-top:40px}
+  #print .sig div{width:40%;border-top:1px solid #000;padding-top:4px;text-align:center;font-size:10pt}
+  #print tr{page-break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<header><div class="bar">
+  <div class="brand" id="brand"></div>
+  <nav id="nav"></nav>
+  <div id="fstat"></div>
+</div></header>
+<div id="banner"></div>
+<main id="view"></main>
+<div id="print"></div>
+<dialog id="dlg"><div id="dlgc"></div></dialog>
+<input type="file" id="importFile" accept=".json,application/json" hidden>
+
+<script>
+'use strict';
+/* ============ yardımcılar ============ */
+const KEY='disKlinigi.v1';
+const $=s=>document.querySelector(s);
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const fmt=new Intl.NumberFormat('tr-TR',{maximumFractionDigits:0});
+const TL=n=>fmt.format(Math.round(n||0))+' ₺';
+const num=v=>{const x=parseFloat(String(v).replace(',','.'));return isFinite(x)?x:0};
+const today=()=>new Date().toLocaleDateString('sv');
+function dateTR(s){if(!s)return '—';const d=new Date(String(s).slice(0,10)+'T00:00');return isNaN(d)?'—':d.toLocaleDateString('tr-TR')}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+const UNITS=['diş','adet','seans','bölge','çene','tedavi'];
+const STATUS={teklif:'Teklif',kabul:'Kabul edildi',tedavide:'Tedavide',tamam:'Tamamlandı',iptal:'Vazgeçildi'};
+const AGREED=['kabul','tedavide','tamam'];
+const METHODS=['Nakit','Kredi kartı','Havale / EFT'];
+const UP=[18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28];
+const LO=[48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38];
+
+/* ============ varsayılan veri (ÖRNEK fiyatlar) ============ */
+function defaults(){
+  const T=(cat,name,unit,alt,vs)=>({id:uid(),cat,name,unit,alt,variants:vs.map(([n,p])=>({id:uid(),name:n,price:p}))});
+  return {v:1,
+    treatments:[
+      T('Muayene ve teşhis','Muayene','adet',false,[['Muayene',1000]]),
+      T('Muayene ve teşhis','Panoramik röntgen','adet',false,[['Panoramik',1200]]),
+      T('Muayene ve teşhis','Periapikal röntgen','adet',false,[['Periapikal',400]]),
+      T('Muayene ve teşhis','Tomografi (3B)','adet',false,[['Tek çene',2500],['İki çene',3500]]),
+      T('Koruyucu ve diş eti','Diş taşı temizliği','seans',false,[['Standart',2500],['Detertraj + polisaj',3200]]),
+      T('Koruyucu ve diş eti','Diş eti tedavisi (kürtaj)','bölge',false,[['Kapalı kürtaj',1800],['Açık (flep) operasyon',4500]]),
+      T('Koruyucu ve diş eti','Fissür örtücü','diş',false,[['Fissür örtücü',900]]),
+      T('Dolgu ve kanal','Dolgu','diş',false,[['Kompozit – tek yüz',3000],['Kompozit – iki yüz',3800],['Kompozit – üç yüz',4500]]),
+      T('Dolgu ve kanal','İnley / onley','diş',true,[['Kompozit',6000],['Porselen (E.max)',9000]]),
+      T('Dolgu ve kanal','Kanal tedavisi','diş',false,[['Tek kanal',5000],['İki kanal',6500],['Üç kanal',8000]]),
+      T('Cerrahi','Diş çekimi','diş',false,[['Basit çekim',2000],['Cerrahi çekim',4000]]),
+      T('Cerrahi','Gömülü 20 yaş dişi','diş',false,[['Yarı gömülü',5000],['Tam gömülü',7000]]),
+      T('İmplant','İmplant','diş',true,[['Yerli (Türk) implant',22000],['Yabancı implant – Kore',28000],['Yabancı implant – Avrupa premium',40000]]),
+      T('İmplant','İmplant üstü kron','diş',true,[['Metal destekli porselen',9000],['Zirkonyum',13000]]),
+      T('İmplant','Kemik tozu (greft)','adet',true,[['Yerli greft',5000],['İthal greft',8500]]),
+      T('İmplant','Sinüs lifting','bölge',false,[['Kapalı',9000],['Açık',16000]]),
+      T('Protez ve estetik','Kron / köprü üyesi','diş',true,[['Metal destekli porselen',7000],['Zirkonyum',11000],['E.max tam seramik',13000]]),
+      T('Protez ve estetik','Laminate veneer','diş',true,[['Kompozit laminate',5000],['E.max porselen laminate',14000]]),
+      T('Protez ve estetik','Tam protez','çene',true,[['Akrilik tam protez',16000],['İmplant üstü hareketli (lokatörlü)',30000]]),
+      T('Protez ve estetik','Bölümlü protez','çene',true,[['İskelet protez',18000],['Hassas bağlantılı',30000]]),
+      T('Protez ve estetik','Diş beyazlatma','tedavi',true,[['Ev tipi',5000],['Ofis tipi',8000]]),
+      T('Ortodonti','Ortodontik tedavi','tedavi',true,[['Metal braket',60000],['Seramik braket',80000],['Şeffaf plak',120000]]),
+      T('Ortodonti','Gece plağı','adet',true,[['Yumuşak',3500],['Sert (bruksizm)',5000]])
+    ],
+    rules:[
+      {min:0,max:10000,taksit:2,indirim:5,pesin:5},
+      {min:10000,max:50000,taksit:6,indirim:10,pesin:7},
+      {min:50000,max:150000,taksit:9,indirim:12,pesin:8},
+      {min:150000,max:null,taksit:12,indirim:15,pesin:10}
+    ],
+    vade:[{n:2,p:0},{n:3,p:0},{n:6,p:4},{n:9,p:7},{n:12,p:10}],
+    patients:[],plans:[],payments:[],
+    clinic:{name:'Diş Kliniği',phone:'',address:'',validDays:30,footer:'Tedavi sırasında klinik bir gereklilik doğarsa plan hasta ile birlikte güncellenir.'},
+    meta:{created:new Date().toISOString(),savedAt:'',pricesEdited:false,lastExport:''}
+  };
+}
+function migrate(d){
+  const def=defaults();
+  for(const k of ['treatments','rules','vade']) if(!Array.isArray(d[k])) d[k]=def[k];
+  for(const k of ['patients','plans','payments']) if(!Array.isArray(d[k])) d[k]=[];
+  d.clinic={...def.clinic,...(d.clinic||{})};
+  d.meta={...def.meta,...(d.meta||{})};
+  return d;
+}
+
+/* ============ kayıt: tarayıcı + (varsa) bilgisayardaki dosya ============ */
+/* Bulut (Supabase) ayarı — doluysa ortak veritabanı + giriş ekranı, boşsa yalnız bu cihaz */
+const CLOUD={url:'https://opgzdjmfmwezwytvwyne.supabase.co',key:'sb_publishable_WbksA2a95twdISmQ1KR6fg_8XXLEDn8'};
+const CL=!!(CLOUD.url&&CLOUD.key);
+let S=CL?defaults():(()=>{try{const r=localStorage.getItem(KEY);if(r)return migrate(JSON.parse(r))}catch(e){}return defaults()})();
+let fileHandle=null,filePerm=false,fileErr='',fileSavedAt='',wTimer=null;
+const FS=!!(window.showSaveFilePicker&&window.indexedDB);
+
+function save(){
+  S.meta.savedAt=new Date().toISOString();
+  if(CL){clearTimeout(pushTimer);pushTimer=setTimeout(push,500);return}
+  try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){alert('Tarayıcıya kaydedilemedi: '+e.message)}
+  if(fileHandle&&filePerm){clearTimeout(wTimer);wTimer=setTimeout(writeFile,350)}
+  fstat();
+}
+async function writeFile(){
+  try{const w=await fileHandle.createWritable();await w.write(JSON.stringify(S,null,1));await w.close();fileErr='';fileSavedAt=new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'})}
+  catch(e){filePerm=false;fileErr=e.message;renderBanner()}
+  fstat();
+}
+function idb(){return new Promise((res,rej)=>{const r=indexedDB.open('disKlinigi',1);r.onupgradeneeded=()=>r.result.createObjectStore('h');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+async function idbGet(k){const db=await idb();return new Promise((res,rej)=>{const q=db.transaction('h').objectStore('h').get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)})}
+async function idbSet(k,v){const db=await idb();return new Promise((res,rej)=>{const t=db.transaction('h','readwrite');t.objectStore('h').put(v,k);t.oncomplete=()=>res();t.onerror=()=>rej(t.error)})}
+function valid(d){return d&&typeof d==='object'&&Array.isArray(d.treatments)&&Array.isArray(d.patients)}
+
+async function initFile(){
+  if(!FS)return;
+  try{fileHandle=await idbGet('file')}catch(e){fileHandle=null}
+  if(!fileHandle)return render();
+  try{if(await fileHandle.queryPermission({mode:'readwrite'})==='granted')await connectFile()}catch(e){}
+  render();
+}
+async function connectFile(){
+  filePerm=true;
+  const txt=await (await fileHandle.getFile()).text();
+  if(txt.trim()){
+    const d=JSON.parse(txt);
+    if(valid(d)&&(d.meta?.savedAt||'')>(S.meta.savedAt||'')){S=migrate(d);try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+  }
+  await writeFile();
+}
+function fstat(){
+  let t;
+  if(CL)t=!cloud.user?'':cloud.err?`<span style="color:var(--bad)">Buluta kaydedilemedi — bağlantıyı kontrol edin, değişiklikler bekliyor</span>`
+    :`${esc(cloud.user.email)} · ${cloud.syncAt?'buluta kaydedildi '+cloud.syncAt+' ✓':'bağlı ✓'} · <a data-act="logout" style="color:var(--acc);cursor:pointer">Çıkış</a>`;
+  else if(fileHandle&&filePerm)t=`Kayıt dosyası: ${esc(fileHandle.name)}${fileSavedAt?' · son kayıt '+fileSavedAt:''} ✓`;
+  else if(fileHandle)t='Kayıt dosyası bağlı değil — üstteki düğmeye basın';
+  else t='Veriler yalnızca bu tarayıcıda';
+  $('#fstat').innerHTML=t;
+}
+
+/* ============ bulut eşitleme ============ */
+// Her hasta / plan / tahsilat ve ayarlar veritabanında ayrı bir satır (records: kind, id, data).
+// Değişen satırlar yukarı gönderilir, diğer kullanıcıların değişiklikleri 15 sn'de bir çekilir.
+const cloud={sb:null,user:null,member:null,ready:false,err:'',syncAt:'',lastPull:'',synced:new Map(),mode:'login',msg:'',users:null,pendingRender:false};
+let pushTimer=null;
+function canon(v){if(Array.isArray(v))return '['+v.map(canon).join(',')+']';if(v&&typeof v==='object')return '{'+Object.keys(v).sort().map(k=>JSON.stringify(k)+':'+canon(v[k])).join(',')+'}';return JSON.stringify(v===undefined?null:v)}
+const KINDS={patient:'patients',plan:'plans',payment:'payments'};
+function entities(){
+  const m=new Map();
+  for(const [k,arr] of Object.entries(KINDS))S[arr].forEach(x=>m.set(k+':'+x.id,x));
+  m.set('settings:main',{treatments:S.treatments,rules:S.rules,vade:S.vade,clinic:S.clinic,pricesEdited:!!S.meta.pricesEdited});
+  return m;
+}
+const splitKey=k=>{const i=k.indexOf(':');return [k.slice(0,i),k.slice(i+1)]};
+function applyEntity(kind,id,data){
+  if(kind==='settings'){Object.assign(S,{treatments:data.treatments||S.treatments,rules:data.rules||S.rules,vade:data.vade||S.vade});S.clinic={...S.clinic,...(data.clinic||{})};S.meta.pricesEdited=!!data.pricesEdited;return}
+  const arr=S[KINDS[kind]];if(!arr)return;
+  const i=arr.findIndex(x=>x.id===id);if(i>=0)arr[i]=data;else arr.push(data);
+}
+function removeEntity(kind,id){const a=KINDS[kind];if(a)S[a]=S[a].filter(x=>x.id!==id)}
+async function push(){
+  if(!cloud.sb||!cloud.member)return;
+  const m=entities(),rows=[],js=[];
+  for(const [k,v] of m){const j=canon(v);if(cloud.synced.get(k)!==j){const [kind,id]=splitKey(k);rows.push({kind,id,data:v,deleted:false});js.push(j)}}
+  for(const k of cloud.synced.keys())if(!m.has(k)){const [kind,id]=splitKey(k);rows.push({kind,id,data:{},deleted:true});js.push(null)}
+  if(!rows.length){fstat();return}
+  const {error}=await cloud.sb.from('records').upsert(JSON.parse(JSON.stringify(rows)));
+  if(error){cloud.err=error.message;fstat();renderBanner();clearTimeout(pushTimer);pushTimer=setTimeout(push,10000);return}
+  rows.forEach((r,i)=>{const k=r.kind+':'+r.id;if(r.deleted)cloud.synced.delete(k);else cloud.synced.set(k,js[i])});
+  cloud.err='';cloud.syncAt=new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});fstat();renderBanner();
+}
+async function pull(full){
+  if(!cloud.sb||!cloud.member)return;
+  const since=!full&&cloud.lastPull?new Date(new Date(cloud.lastPull)-60000).toISOString():null;
+  let rows=[];
+  for(let from=0;;from+=1000){
+    let q=cloud.sb.from('records').select('kind,id,data,deleted,updated_at').order('updated_at').range(from,from+999);
+    q=since?q.gt('updated_at',since):q.eq('deleted',false);
+    const {data,error}=await q;
+    if(error){cloud.err=error.message;fstat();renderBanner();return false}
+    rows=rows.concat(data);if(data.length<1000)break;
+  }
+  const m=entities();let changed=false;
+  for(const r of rows){
+    const k=r.kind+':'+r.id,local=m.get(k),lj=local?canon(local):undefined;
+    if(r.updated_at>(cloud.lastPull||''))cloud.lastPull=r.updated_at;
+    if(local&&cloud.synced.has(k)&&lj!==cloud.synced.get(k))continue; // bu cihazda gönderilmeyi bekleyen değişiklik var
+    if(r.deleted){if(local&&r.kind!=='settings'){removeEntity(r.kind,r.id);changed=true}cloud.synced.delete(k);continue}
+    const rj=canon(r.data);cloud.synced.set(k,rj);
+    if(lj!==rj){applyEntity(r.kind,r.id,r.data);changed=true}
+  }
+  if(cloud.err){cloud.err='';fstat();renderBanner()}
+  if(changed&&cloud.ready)safeRender();
+  return true;
+}
+function safeRender(){const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&$('#view').contains(a)||$('#dlg').open){cloud.pendingRender=true;return}render()}
+document.addEventListener('focusout',()=>setTimeout(()=>{if(cloud.pendingRender&&!$('#dlg').open){const a=document.activeElement;if(!(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))){cloud.pendingRender=false;render()}}},200));
+async function cloudInit(){
+  if(!window.supabase){$('#view').innerHTML=`<div class="login"><h1>Bağlantı yok</h1><p class="muted">Uygulama internete bağlanamadı. Bağlantıyı kontrol edip sayfayı yenileyin.</p><button class="pri" onclick="location.reload()">Yenile</button></div>`;return}
+  cloud.sb=supabase.createClient(CLOUD.url,CLOUD.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  cloud.sb.auth.onAuthStateChange((ev,session)=>{
+    if(ev==='PASSWORD_RECOVERY'){cloud.mode='newpass';cloud.user=session?.user||null;render()}
+    else if(ev==='SIGNED_OUT'){cloud.user=null;cloud.member=null;cloud.ready=false;cloud.synced.clear();cloud.lastPull='';S=defaults();render()}
+  });
+  const {data:{session}}=await cloud.sb.auth.getSession();
+  if(session&&cloud.mode!=='newpass')await afterLogin(session.user);else render();
+  setInterval(()=>{if(document.visibilityState==='visible')pull(false)},15000);
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')pull(false)});
+  window.addEventListener('beforeunload',e=>{if(cloud.member&&[...entities()].some(([k,v])=>cloud.synced.get(k)!==canon(v))){push();e.preventDefault();e.returnValue=''}});
+}
+async function afterLogin(user){
+  cloud.user=user;cloud.ready=false;$('#view').innerHTML='<div class="loading">Kayıtlar yükleniyor…</div>';
+  const {data,error}=await cloud.sb.rpc('is_member');
+  if(error){cloud.msg='Sunucuya ulaşılamadı: '+error.message;cloud.user=null;await cloud.sb.auth.signOut({scope:'local'});render();return}
+  cloud.member=!!data;
+  if(cloud.member){S=defaults();cloud.synced.clear();cloud.lastPull='';if(await pull(true))await push()}
+  cloud.ready=true;render();
+}
+function vLogin(){
+  const m=cloud.mode;
+  if(m==='newpass')return `<div class="login"><h1>Yeni şifre</h1><p class="muted">Hesabınız için yeni bir şifre belirleyin.</p>
+    <label>Yeni şifre (en az 8 karakter)<input type="password" id="l_p1" autocomplete="new-password"></label>
+    <label>Yeni şifre (tekrar)<input type="password" id="l_p2" autocomplete="new-password"></label>
+    ${cloud.msg?`<div class="notice warn small" style="margin-top:12px">${esc(cloud.msg)}</div>`:''}
+    <button class="pri" data-act="setPass">Şifreyi kaydet</button></div>`;
+  const t={login:['Giriş','Kliniğin tedavi planı ve hasta kayıtları'],signup:['Hesap oluştur','Yöneticinin yetkili listeye eklediği e-posta ile hesap açın'],forgot:['Şifremi unuttum','E-postanıza şifre yenileme bağlantısı gönderilir']}[m];
+  return `<div class="login"><h1>${t[0]}</h1><p class="muted">${t[1]}</p>
+    <label>E-posta<input type="email" id="l_email" autocomplete="username" value="${esc(cloud.lastEmail||'')}"></label>
+    ${m!=='forgot'?`<label>Şifre${m==='signup'?' (en az 8 karakter)':''}<input type="password" id="l_pass" autocomplete="${m==='signup'?'new-password':'current-password'}"></label>`:''}
+    ${m==='signup'?`<label>Şifre (tekrar)<input type="password" id="l_pass2" autocomplete="new-password"></label>`:''}
+    ${cloud.msg?`<div class="notice warn small" style="margin-top:12px">${esc(cloud.msg)}</div>`:''}
+    <button class="pri" data-act="${{login:'login',signup:'signup',forgot:'forgot'}[m]}">${{login:'Giriş yap',signup:'Hesabı oluştur',forgot:'Bağlantı gönder'}[m]}</button>
+    <div class="links">${m==='login'?`<a data-act="lmode" data-m="signup">İlk kez mi giriyorsunuz?</a><a data-act="lmode" data-m="forgot">Şifremi unuttum</a>`:`<a data-act="lmode" data-m="login">← Girişe dön</a>`}</div></div>`;
+}
+function vNoAccess(){
+  return `<div class="login"><h1>Yetki bekleniyor</h1><p class="muted"><b>${esc(cloud.user.email)}</b> henüz yetkili listede değil. Kliniğin yöneticisi bu e-postayı “Kayıt ve ayarlar → Kullanıcılar” bölümünden eklediğinde kayıtları görebilirsiniz.</p>
+  <button class="pri" data-act="recheck">Tekrar dene</button><div class="links"><a data-act="logout">Başka hesapla gir</a></div></div>`;
+}
+async function loadUsers(){const {data,error}=await cloud.sb.from('allowed_emails').select('email,added_at').order('added_at');cloud.users=error?[]:data;if(ui.view==='data')safeRender()}
+
+/* ============ hesap ============ */
+const tById=id=>S.treatments.find(t=>t.id===id);
+const pById=id=>S.patients.find(p=>p.id===id);
+const planById=id=>S.plans.find(p=>p.id===id);
+const plansOf=pid=>S.plans.filter(p=>p.pid===pid);
+const sortedRules=()=>[...S.rules].sort((a,b)=>a.min-b.min);
+const noMax=r=>r.max==null||r.max==='';
+function ruleFor(sub){const rs=sortedRules();return rs.find(r=>sub>=r.min&&(noMax(r)||sub<r.max))||rs[rs.length-1]||{min:0,max:null,taksit:1,indirim:0,pesin:0}}
+const ruleLabel=r=>noMax(r)?`${TL(r.min)} ve üzeri`:`${TL(r.min)} – ${TL(r.max)}`;
+function calc(items,discount){
+  const sub=items.reduce((s,i)=>s+i.qty*i.price,0);
+  const count=items.reduce((s,i)=>s+(+i.qty||0),0);
+  const rule=ruleFor(sub);
+  const want=num(discount),disc=Math.min(want,rule.indirim||0);
+  const net=sub*(1-disc/100);
+  const pesin=net*(1-(rule.pesin||0)/100);
+  const opts=[
+    {key:'pesin',label:'Peşin (nakit / havale)',n:1,total:pesin,note:rule.pesin?`%${rule.pesin} peşin indirimi`:''},
+    {key:'tek',label:'Kredi kartı – tek çekim',n:1,total:net,note:''}
+  ];
+  const vm=new Map(S.vade.map(v=>[+v.n,num(v.p)]));
+  const ns=[...vm.keys()].filter(n=>n>1&&n<=rule.taksit);
+  if(rule.taksit>1&&!ns.includes(+rule.taksit))ns.push(+rule.taksit);
+  ns.sort((a,b)=>a-b);
+  for(const n of ns){const v=vm.get(n)||0,t=net*(1+v/100);opts.push({key:String(n),label:`${n} taksit`,n,total:t,monthly:t/n,note:v?`%${v} vade farkı`:'Vade farksız'})}
+  return {sub,count,rule,disc,want,capped:want>disc,net,pesin,opts};
+}
+function planAmount(pl){const c=calc(pl.items,pl.discount);const o=c.opts.find(o=>o.key===pl.pay);return o?o.total:c.net}
+function balance(pid){
+  const agreed=plansOf(pid).filter(p=>AGREED.includes(p.status)).reduce((s,p)=>s+planAmount(p),0);
+  const paid=S.payments.filter(x=>x.pid===pid).reduce((s,x)=>s+num(x.amount),0);
+  return {agreed,paid,rest:agreed-paid};
+}
+function lastActivity(p){return [p.created||'',...plansOf(p.id).map(x=>x.date||''),...S.payments.filter(x=>x.pid===p.id).map(x=>x.date||'')].map(s=>String(s).slice(0,10)).sort().pop()||''}
+const isAlt=it=>{const t=tById(it.tid);return !!(t&&t.alt&&t.variants.length>1)};
+function variantItems(items,mode){
+  return items.map(it=>{
+    if(!isAlt(it))return it;
+    const vs=[...tById(it.tid).variants].sort((a,b)=>a.price-b.price);
+    const v=mode==='eco'?vs[0]:vs[vs.length-1];
+    return {...it,vid:v.id,vname:v.name,price:v.price};
+  });
+}
+const sameVariants=(a,b)=>a.every((x,i)=>x.vid===b[i].vid&&x.price===b[i].price);
+
+/* ============ arayüz durumu ============ */
+const ui={view:'patients',pid:null,plan:null,q:'',add:null,deneme:25000};
+function go(view,extra={}){Object.assign(ui,{view},extra);render();scrollTo(0,0)}
+function render(){
+  if(CL&&!(cloud.user&&cloud.ready&&cloud.member)){
+    $('#brand').innerHTML=`${esc(S.clinic.name||'Diş Kliniği')}<small>Tedavi planı ve ödeme hesaplayıcı</small>`;
+    $('#nav').innerHTML='';$('#banner').innerHTML='';fstat();
+    $('#view').innerHTML=cloud.user&&cloud.mode!=='newpass'?(cloud.ready?vNoAccess():'<div class="loading">Kayıtlar yükleniyor…</div>'):vLogin();
+    setTimeout(()=>$('#view input')?.focus(),30);return;
+  }
+  $('#brand').innerHTML=`${esc(S.clinic.name||'Diş Kliniği')}<small>Tedavi planı ve ödeme hesaplayıcı</small>`;
+  const nv=ui.view==='patient'||ui.view==='plan'?'patients':ui.view;
+  $('#nav').innerHTML=[['patients','Hastalar'],['prices','Fiyat listesi'],['rules','Ödeme kuralları'],['data','Kayıt ve ayarlar']]
+    .map(([k,l])=>`<button class="${nv===k?'on':''}" data-act="nav" data-v="${k}">${l}</button>`).join('');
+  renderBanner();fstat();
+  const V={patients:vPatients,patient:vPatient,plan:vPlan,prices:vPrices,rules:vRules,data:vData}[ui.view]||vPatients;
+  $('#view').innerHTML=V();
+}
+function renderBanner(){
+  let h='';
+  if(CL){if(cloud.err)h=`<div class="notice bad" style="margin-top:12px">Değişiklikler buluta kaydedilemedi (${esc(cloud.err)}). İnternet gelince otomatik yeniden denenir; bu sekmeyi kapatmayın. <button data-act="retryPush">Şimdi dene</button></div>`}
+  else if(fileHandle&&!filePerm)h=`<div class="notice warn" style="margin-top:12px">Kayıtlar bilgisayardaki <b>${esc(fileHandle.name)}</b> dosyasına yazılıyor, bu oturum için izin gerekiyor.${fileErr?' ('+esc(fileErr)+')':''} <button class="pri" data-act="reconnect">Kayıt dosyasına bağlan</button></div>`;
+  else if(!fileHandle&&S.patients.length){
+    const d=S.meta.lastExport?(Date.now()-new Date(S.meta.lastExport))/864e5:999;
+    if(d>7)h=`<div class="notice warn" style="margin-top:12px">Hasta kayıtları şu an yalnızca bu tarayıcıda duruyor; tarayıcı verisi silinirse kaybolur. <button data-act="nav" data-v="data">Kayıt dosyası ayarla / yedek al</button></div>`;
+  }
+  $('#banner').innerHTML=h;
+}
+function openDlg(h){$('#dlgc').innerHTML=h;const d=$('#dlg');if(!d.open)d.showModal();setTimeout(()=>d.querySelector('input')?.focus(),30)}
+const closeDlg=()=>$('#dlg').close();
+
+/* ============ HASTALAR ============ */
+function vPatients(){
+  return `<div class="head"><div><h1>Hastalar</h1><p class="muted">${S.patients.length} hasta kayıtlı</p></div><button class="pri" data-act="newPatient">+ Yeni hasta</button></div>
+  <div class="card"><input class="search" placeholder="Ad veya telefonla ara…" value="${esc(ui.q)}" data-in="search"><div id="plist">${patientRows()}</div></div>`;
+}
+function patientRows(){
+  if(!S.patients.length)return `<div class="empty">Henüz hasta yok. <b>+ Yeni hasta</b> ile başlayın.</div>`;
+  const q=ui.q.trim().toLocaleLowerCase('tr');
+  const list=S.patients.filter(p=>!q||(p.name+' '+(p.phone||'')).toLocaleLowerCase('tr').includes(q))
+    .map(p=>({p,la:lastActivity(p),b:balance(p.id)})).sort((a,b)=>b.la.localeCompare(a.la));
+  if(!list.length)return `<p class="muted">Eşleşen hasta yok.</p>`;
+  return `<table><thead><tr><th>Hasta</th><th>Telefon</th><th class="n">Plan</th><th class="n">Anlaşılan</th><th class="n">Kalan</th><th>Son işlem</th></tr></thead><tbody>${
+    list.map(({p,la,b})=>`<tr class="row" data-act="openPatient" data-id="${p.id}"><td><b>${esc(p.name)}</b></td><td>${esc(p.phone||'')}</td><td class="n">${plansOf(p.id).length}</td><td class="n">${TL(b.agreed)}</td><td class="n ${b.rest>0.5?'due':''}">${TL(b.rest)}</td><td>${dateTR(la)}</td></tr>`).join('')
+  }</tbody></table>`;
+}
+function patientForm(p){
+  openDlg(`<h2>${p?'Hasta bilgileri':'Yeni hasta'}</h2>
+  <div class="form">
+    <label class="wide">Ad soyad *<input id="f_name" value="${esc(p?.name)}"></label>
+    <label>Telefon<input id="f_phone" value="${esc(p?.phone)}"></label>
+    <label>Doğum tarihi<input type="date" id="f_birth" value="${esc(p?.birth)}"></label>
+    <label class="wide">Not (alerji, kullandığı ilaçlar, sistemik hastalık…)<textarea id="f_note" rows="3">${esc(p?.note)}</textarea></label>
+    <label class="chk wide"><input type="checkbox" id="f_kvkk" ${p?.kvkk?'checked':''}> KVKK aydınlatma metni verildi, açık rıza alındı</label>
+  </div>
+  <div class="dlgbtns"><button data-act="closeDlg">Vazgeç</button><button class="pri" data-act="savePatient" data-id="${p?.id||''}">Kaydet</button></div>`);
+}
+
+/* ============ HASTA KARTI ============ */
+function vPatient(){
+  const p=pById(ui.pid);if(!p){ui.view='patients';return vPatients()}
+  const b=balance(p.id);
+  const plans=plansOf(p.id).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const pays=S.payments.filter(x=>x.pid===p.id).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const info=[p.phone&&esc(p.phone),p.birth&&'Doğum: '+dateTR(p.birth),p.kvkk?'KVKK onayı alındı':'<span style="color:var(--warn)">KVKK onayı işaretlenmedi</span>'].filter(Boolean).join(' · ');
+  return `<div class="crumb"><a data-act="nav" data-v="patients">Hastalar</a> › ${esc(p.name)}</div>
+  <div class="head"><div><h1>${esc(p.name)}</h1><p class="muted">${info}</p></div>
+    <div class="btns"><button data-act="editPatient" data-id="${p.id}">Bilgileri düzenle</button><button class="pri" data-act="newPlan">+ Yeni tedavi planı</button></div></div>
+  ${p.note?`<div class="notice warn"><b>Not:</b> ${esc(p.note)}</div>`:''}
+  <div class="stats">
+    <div class="stat"><span>Anlaşılan tedavi tutarı</span><b>${TL(b.agreed)}</b></div>
+    <div class="stat"><span>Tahsil edilen</span><b>${TL(b.paid)}</b></div>
+    <div class="stat ${b.rest>0.5?'due':''}"><span>Kalan bakiye</span><b>${TL(b.rest)}</b></div>
+  </div>
+  <div class="card"><h2>Tedavi planları</h2>${plans.length?`<table><thead><tr><th>Tarih</th><th>Plan</th><th>Durum</th><th class="n">Kalem / işlem</th><th class="n">Tutar</th></tr></thead><tbody>${
+    plans.map(pl=>{const c=calc(pl.items,pl.discount);const done=pl.items.filter(i=>i.done).length;
+      return `<tr class="row" data-act="openPlan" data-id="${pl.id}"><td>${dateTR(pl.date)}</td><td><b>${esc(pl.title)}</b>${pl.items.length?`<div class="small muted">${done}/${pl.items.length} kalem yapıldı</div>`:''}</td><td><span class="badge s-${pl.status}">${STATUS[pl.status]}</span></td><td class="n">${pl.items.length} / ${c.count}</td><td class="n"><b>${TL(planAmount(pl))}</b></td></tr>`}).join('')
+  }</tbody></table>`:`<p class="muted">Henüz plan yok. <b>+ Yeni tedavi planı</b> ile başlayın.</p>`}</div>
+  <div class="card"><h2>Tahsilatlar</h2>
+    <div class="payform">
+      <label>Tarih<input type="date" id="pay_date" value="${today()}"></label>
+      <label>Tutar (₺)<input type="number" id="pay_amt" min="0" step="1"></label>
+      <label>Ödeme şekli<select id="pay_method">${METHODS.map(m=>`<option>${m}</option>`).join('')}</select></label>
+      <label>Plan<select id="pay_plan"><option value="">—</option>${plans.map(pl=>`<option value="${pl.id}" ${AGREED.includes(pl.status)?'selected':''}>${esc(pl.title)}</option>`).join('')}</select></label>
+      <label style="flex:1;min-width:140px">Not<input id="pay_note" style="width:100%"></label>
+      <button class="pri" data-act="addPay">Tahsilat ekle</button>
+    </div>
+    ${pays.length?`<table><thead><tr><th>Tarih</th><th>Şekil</th><th>Plan</th><th>Not</th><th class="n">Tutar</th><th></th></tr></thead><tbody>${
+      pays.map(x=>`<tr><td>${dateTR(x.date)}</td><td>${esc(x.method)}</td><td>${esc(planById(x.planId)?.title||'—')}</td><td>${esc(x.note||'')}</td><td class="n"><b>${TL(x.amount)}</b></td><td class="n"><button class="ghost danger" data-act="delPay" data-id="${x.id}" title="Sil">✕</button></td></tr>`).join('')
+    }</tbody></table>`:`<p class="muted small">Tahsilat girilmedi.</p>`}
+  </div>
+  <div class="dz"><span class="muted small">Hastayı silmek tüm planlarını ve tahsilatlarını da siler.</span><button class="danger" data-act="delPatient">Hastayı sil</button></div>`;
+}
+
+/* ============ TEDAVİ PLANI ============ */
+function optCard(title,desc,items,pl,mode,cls){
+  const c=calc(items,pl.discount);
+  const tk=c.opts.filter(o=>o.n>1),last=tk[tk.length-1];
+  const same=mode&&sameVariants(items,pl.items);
+  return `<div class="opt ${cls||''}">
+    <div class="opt-h"><b>${title}</b>${same?'<span class="badge">Şu an seçili</span>':''}</div>
+    <div class="small muted">${desc}</div>
+    <div class="big">${TL(c.net)}</div>
+    ${c.disc?`<div class="small muted"><s>${TL(c.sub)}</s> · %${c.disc} indirimli</div>`:''}
+    <ul><li>Peşin: <b>${TL(c.pesin)}</b></li>${last?`<li>${last.n} taksite kadar: <b>${last.n} × ${TL(last.monthly)}</b></li>`:'<li>Bu tutarda taksit yok</li>'}
+    <li class="muted small">Aralık: ${ruleLabel(c.rule)}</li></ul>
+    ${mode&&!same?`<button data-act="applyOpt" data-m="${mode}">Bu seçeneği uygula</button>`:''}
+  </div>`;
+}
+function vPlan(){
+  const pl=planById(ui.plan);if(!pl){ui.view='patients';return vPatients()}
+  const p=pById(pl.pid)||{name:'?'};
+  const c=calc(pl.items,pl.discount);
+  const hasAlt=pl.items.some(isAlt);
+  let top;
+  if(!pl.items.length)top=`<div class="card empty">Aşağıdan işlem ekleyin. Toplam tutar, seçenekler ve ödeme koşulları burada otomatik çıkar.</div>`;
+  else if(hasAlt)top=`<div class="opts">
+    ${optCard('Ekonomik seçenek','Seçenekli kalemlerde en uygun malzeme / marka',variantItems(pl.items,'eco'),pl,'eco')}
+    ${optCard('Plandaki seçim','Şu an seçili malzemelerle',pl.items,pl,null,'mid')}
+    ${optCard('Premium seçenek','Seçenekli kalemlerde en üst malzeme / marka',variantItems(pl.items,'pre'),pl,'pre')}</div>`;
+  else top=`<div class="opts">${optCard('Plan toplamı','Seçilen işlemlerle',pl.items,pl,null,'mid')}</div>`;
+  const stale=pl.items.some(it=>{const v=tById(it.tid)?.variants.find(v=>v.id===it.vid);return v&&v.price!==it.price});
+  return `<div class="crumb"><a data-act="nav" data-v="patients">Hastalar</a> › <a data-act="openPatient" data-id="${p.id}">${esc(p.name)}</a> › Tedavi planı</div>
+  <div class="planhead">
+    <label class="grow">Plan adı<input value="${esc(pl.title)}" data-ch="planTitle"></label>
+    <label>Tarih<input type="date" value="${esc(pl.date)}" data-ch="planDate"></label>
+    <label>Durum<select data-ch="planStatus">${Object.entries(STATUS).map(([k,l])=>`<option value="${k}" ${pl.status===k?'selected':''}>${l}</option>`).join('')}</select></label>
+    <div class="btns"><button class="pri" data-act="printPlan" ${pl.items.length?'':'disabled'}>Teklifi yazdır</button><button data-act="copyPlan">Kopyala</button><button class="danger" data-act="delPlan">Sil</button></div>
+  </div>
+  ${stale?`<div class="notice warn">Bu plandaki bazı fiyatlar fiyat listesindeki güncel fiyattan farklı (plan eski fiyatla kayıtlı). <button data-act="refreshPrices">Güncel fiyatlara çek</button></div>`:''}
+  ${top}
+  <div class="grid">
+    <div>${addPanel(pl)}${itemsTable(pl)}</div>
+    <div class="side">${pl.items.length?summary(pl,c):''}</div>
+  </div>`;
+}
+function addPanel(pl){
+  if(!S.treatments.length)return `<div class="card">Fiyat listesi boş. Önce <a data-act="nav" data-v="prices" style="color:var(--acc);cursor:pointer">fiyat listesine</a> işlem ekleyin.</div>`;
+  const a=ui.add||(ui.add={tid:S.treatments[0].id,vid:null,teeth:[],qty:1,note:''});
+  let t=tById(a.tid);if(!t){t=S.treatments[0];a.tid=t.id}
+  if(!t.variants.find(v=>v.id===a.vid))a.vid=t.variants[0]?.id;
+  if(t.unit!=='diş')a.teeth=[];
+  const cats=[...new Set(S.treatments.map(x=>x.cat))];
+  const used=new Set(pl.items.flatMap(i=>i.teeth||[]));
+  const tooth=n=>`<button class="tooth ${a.teeth.includes(n)?'on':''} ${used.has(n)?'used':''} ${n===11||n===41?'gap':''}" data-act="tooth" data-n="${n}" title="${used.has(n)?'Bu dişe planda işlem var':''}">${n}</button>`;
+  return `<div class="card"><h2>İşlem ekle</h2>
+    <div class="addgrid">
+      <label>Bölüm<select data-ch="addCat">${cats.map(c=>`<option value="${esc(c)}" ${c===t.cat?'selected':''}>${esc(c)}</option>`).join('')}</select></label>
+      <label>İşlem<select data-ch="addT">${S.treatments.filter(x=>x.cat===t.cat).map(x=>`<option value="${x.id}" ${x.id===t.id?'selected':''}>${esc(x.name)}${x.alt&&x.variants.length>1?' ◆':''}</option>`).join('')}</select></label>
+    </div>
+    ${t.variants.length>1?`<div class="small muted" style="margin-bottom:6px">${t.alt?'Hastaya sunulacak seçenekler — karşılaştırma yukarıda otomatik çıkar':'Tür seçin'}</div>`:''}
+    <div class="variants">${t.variants.map(v=>`<button class="var ${v.id===a.vid?'on':''}" data-act="addV" data-id="${v.id}"><span>${esc(v.name)}</span><b>${TL(v.price)}</b></button>`).join('')}</div>
+    ${t.unit==='diş'?`<div class="teeth"><div class="tlabel">Diş seçin (isteğe bağlı) — seçilen diş sayısı adedi belirler. Turuncu çizgi: bu plana zaten işlem eklenmiş diş.</div><div class="trow">${UP.map(tooth).join('')}</div><div class="trow">${LO.map(tooth).join('')}</div></div>`:''}
+    <div class="addrow">
+      <label>Adet (${esc(t.unit)})<input type="number" min="1" value="${a.teeth.length||a.qty}" data-in="addQty" ${a.teeth.length?'disabled':''}></label>
+      <label class="grow">Not (isteğe bağlı)<input value="${esc(a.note)}" data-in="addNote"></label>
+      <div id="addPrev">${addPrev()}</div>
+      <button class="pri" data-act="addItem">Plana ekle</button>
+    </div></div>`;
+}
+function addPrev(){const a=ui.add,t=tById(a.tid),v=t?.variants.find(v=>v.id===a.vid);if(!v)return '';const q=a.teeth.length||a.qty;return `${q} × ${TL(v.price)} = <b style="color:var(--ink)">${TL(q*v.price)}</b>`}
+function itemsTable(pl){
+  if(!pl.items.length)return '';
+  return `<div class="card"><h2>Tedavi kalemleri <span class="muted small" style="font-weight:400">— ${pl.items.length} kalem, ${pl.items.reduce((s,i)=>s+ +i.qty,0)} işlem</span></h2>
+  <div style="overflow-x:auto"><table class="items"><thead><tr><th>#</th><th>İşlem</th><th>Tür / seçenek</th><th class="n">Adet</th><th class="n">Birim</th><th class="n">Tutar</th><th></th></tr></thead><tbody>${
+    pl.items.map((it,i)=>{
+      const t=tById(it.tid);
+      const sel=t&&t.variants.length>1&&!isAlt(it)
+        ?`<select data-ch="itemV" data-id="${it.id}">${t.variants.map(v=>`<option value="${v.id}" ${v.id===it.vid?'selected':''}>${esc(v.name)}</option>`).join('')}</select>`
+        :esc(it.vname);
+      let alts='';
+      if(isAlt(it)){
+        const vs=[...t.variants].sort((a,b)=>a.price-b.price);
+        alts=`<tr class="altrow ${it.done?'done':''}"><td></td><td colspan="6"><div class="small muted">Hastaya sunulan seçenekler (tıklayınca değişir):</div><div class="alts">${vs.map(v=>{const d=(v.price-it.price)*it.qty;return `<button class="alt ${v.id===it.vid?'on':''}" data-act="itemAlt" data-id="${it.id}" data-v="${v.id}">${esc(v.name)} · ${TL(v.price*it.qty)}${v.id===it.vid||!d?'':` <i>(${d>0?'+':'−'}${TL(Math.abs(d))})</i>`}</button>`}).join('')}</div></td></tr>`;
+      }
+      return `<tr class="${it.done?'done':''}"><td>${i+1}</td>
+        <td><b>${esc(it.name)}</b><div class="sub">${it.teeth?.length?'Diş: '+it.teeth.join(', '):''}${it.note?(it.teeth?.length?' · ':'')+esc(it.note):''}</div>
+          <label class="chk small" style="margin-top:6px"><input type="checkbox" data-ch="done" data-id="${it.id}" ${it.done?'checked':''}> Yapıldı</label></td>
+        <td>${sel}</td>
+        <td class="n"><input type="number" class="qty" min="1" value="${it.qty}" data-ch="qty" data-id="${it.id}"><div class="sub">${esc(it.unit||'')}</div></td>
+        <td class="n">${TL(it.price)}</td><td class="n"><b>${TL(it.qty*it.price)}</b></td>
+        <td class="n"><button class="ghost danger" data-act="delItem" data-id="${it.id}" title="Kalemi sil">✕</button></td></tr>${alts}`;
+    }).join('')
+  }</tbody></table></div></div>`;
+}
+function summary(pl,c){
+  const r=c.rule,o=c.opts.find(o=>o.key===pl.pay);
+  return `<div class="card"><h2>Özet</h2>
+    <div class="kv"><span>Kalem sayısı</span><b>${pl.items.length}</b></div>
+    <div class="kv"><span>Toplam işlem adedi</span><b>${c.count}</b></div>
+    <div class="kv"><span>Ara toplam</span><b>${TL(c.sub)}</b></div>
+    <div class="rulebox">Fiyat aralığı: <b>${ruleLabel(r)}</b><br>En fazla <b>${r.taksit}</b> taksit · en fazla <b>%${r.indirim}</b> indirim · peşinde ek <b>%${r.pesin}</b></div>
+    <div class="kv"><span>İndirim</span><span><input type="number" class="pct" min="0" max="${r.indirim}" step="0.5" value="${pl.discount||0}" data-ch="disc"> %</span></div>
+    ${ui.discNote?`<div class="notice warn small">${ui.discNote}</div>`:c.capped?`<div class="notice warn small">Tutar değiştiği için indirim bu aralığın sınırı olan %${r.indirim}'e indi.</div>`:''}${(ui.discNote='','')}
+    ${c.disc?`<div class="kv"><span>İndirim tutarı</span><b>−${TL(c.sub-c.net)}</b></div>`:''}
+    <div class="kv total"><span>Net tutar</span><b>${TL(c.net)}</b></div>
+  </div>
+  <div class="card"><h2>Ödeme seçenekleri</h2>
+    <table class="pay">${c.opts.map(x=>`<tr class="${pl.pay===x.key?'on':''}"><td><label><input type="radio" name="pay" value="${x.key}" data-ch="pay" ${pl.pay===x.key?'checked':''}> ${x.label}</label>${x.note?`<div class="small muted" style="margin-left:22px">${x.note}</div>`:''}</td>
+      <td class="n"><b>${TL(x.total)}</b>${x.monthly?`<div class="small">${x.n} × ${TL(x.monthly)}</div>`:''}</td></tr>`).join('')}</table>
+    ${!o?`<div class="notice warn small" style="margin-top:8px">Seçilen ödeme şekli bu tutar aralığında yok; tek çekim tutarı esas alındı. Yeniden seçin.</div>`:''}
+    <div class="agreed">Anlaşılan tutar: <b>${TL(planAmount(pl))}</b><div class="small muted">${AGREED.includes(pl.status)?'Hastanın bakiyesine yansıyor.':'Durum “Kabul edildi” yapılınca hastanın bakiyesine yansır.'}</div></div>
+  </div>`;
+}
+function printPlan(){
+  const pl=planById(ui.plan),p=pById(pl.pid)||{},c=calc(pl.items,pl.discount),K=S.clinic;
+  const hasAlt=pl.items.some(isAlt);
+  const rows=pl.items.map((it,i)=>{
+    let alt='';
+    if(isAlt(it))alt=`<div class="alts-p">Seçenekler: ${[...tById(it.tid).variants].sort((a,b)=>a.price-b.price).map(v=>`${esc(v.name)} ${TL(v.price*it.qty)}`).join(' · ')}</div>`;
+    return `<tr><td>${i+1}</td><td><b>${esc(it.name)}</b> — ${esc(it.vname)}${it.note?` <i>(${esc(it.note)})</i>`:''}${alt}</td><td>${(it.teeth||[]).join(', ')}</td><td class="n">${it.qty}</td><td class="n">${TL(it.price)}</td><td class="n">${TL(it.qty*it.price)}</td></tr>`}).join('');
+  const cmp=hasAlt?[['Ekonomik seçenek',variantItems(pl.items,'eco')],['Plandaki seçim',pl.items],['Premium seçenek',variantItems(pl.items,'pre')]].map(([l,its])=>{const x=calc(its,pl.discount);return `<tr><td>${l}</td><td class="n">${TL(x.net)}</td><td class="n">${TL(x.pesin)}</td></tr>`}).join(''):'';
+  $('#print').innerHTML=`<div class="ph"><div><h1>${esc(K.name)}</h1><div>${[K.phone,K.address].filter(Boolean).map(esc).join(' · ')}</div></div>
+    <div style="text-align:right"><b>TEDAVİ PLANI VE FİYAT TEKLİFİ</b><div>Tarih: ${dateTR(pl.date)}</div>${K.validDays?`<div>Geçerlilik: ${K.validDays} gün</div>`:''}</div></div>
+    <p><b>Hasta:</b> ${esc(p.name)}${p.phone?' · '+esc(p.phone):''}</p>
+    <h3>Tedavi kalemleri</h3>
+    <table><thead><tr><th>#</th><th>İşlem</th><th>Diş</th><th class="n">Adet</th><th class="n">Birim</th><th class="n">Tutar</th></tr></thead><tbody>${rows}
+    <tr class="tot"><td colspan="5" class="n">Ara toplam (${pl.items.length} kalem, ${c.count} işlem)</td><td class="n">${TL(c.sub)}</td></tr>
+    ${c.disc?`<tr class="tot"><td colspan="5" class="n">İndirim (%${c.disc})</td><td class="n">−${TL(c.sub-c.net)}</td></tr>`:''}
+    <tr class="tot"><td colspan="5" class="n">Net tutar</td><td class="n">${TL(c.net)}</td></tr></tbody></table>
+    ${cmp?`<h3>Seçenek karşılaştırması</h3><table><thead><tr><th>Seçenek</th><th class="n">Net tutar</th><th class="n">Peşin</th></tr></thead><tbody>${cmp}</tbody></table>`:''}
+    <h3>Ödeme seçenekleri</h3>
+    <table><thead><tr><th>Ödeme şekli</th><th>Açıklama</th><th class="n">Toplam</th><th class="n">Aylık</th></tr></thead><tbody>${c.opts.map(o=>`<tr><td>${o.key===pl.pay?'<b>► ':''}${o.label}${o.key===pl.pay?'</b>':''}</td><td>${o.note||''}</td><td class="n">${TL(o.total)}</td><td class="n">${o.monthly?TL(o.monthly):''}</td></tr>`).join('')}</tbody></table>
+    ${K.footer?`<p style="margin-top:14px;font-size:10pt">${esc(K.footer)}</p>`:''}
+    <div class="sig"><div>Hasta adı soyadı / imza</div><div>Hekim adı soyadı / imza</div></div>`;
+  window.print();
+}
+
+/* ============ FİYAT LİSTESİ ============ */
+function vPrices(){
+  const cats=[...new Set(S.treatments.map(t=>t.cat))];
+  return `<div class="head"><div><h1>Fiyat listesi</h1><p class="muted">Değişiklik yeni eklenen kalemlere uygulanır; kayıtlı planlar kendi fiyatını korur (planda “Güncel fiyatlara çek” düğmesi çıkar).</p></div><button class="pri" data-act="newT">+ Yeni işlem</button></div>
+  ${S.meta.pricesEdited?'':`<div class="notice warn"><b>Bu fiyatlar ÖRNEKTİR.</b> Kliniğinizin gerçek fiyatlarıyla değiştirin. İlk değişiklikte bu uyarı kalkar.</div>`}
+  <div class="notice ok small">“Hastaya seçenek olarak sun” işaretli işlemlerde (implant markası, kron malzemesi gibi) planın başında Ekonomik / Seçilen / Premium karşılaştırması çıkar. İşaretsiz olanlarda türler sadece seçim içindir (dolgu yüz sayısı, kanal sayısı gibi).</div>
+  <datalist id="catlist">${cats.map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
+  ${cats.map(c=>`<div class="card"><h2>${esc(c)}</h2>${S.treatments.filter(t=>t.cat===c).map(tCard).join('')}</div>`).join('')}`;
+}
+function tCard(t){
+  return `<div class="tcard" id="t_${t.id}"><div class="tline">
+    <input class="tname" value="${esc(t.name)}" data-ch="tField" data-f="name" data-id="${t.id}" title="İşlem adı">
+    <input list="catlist" value="${esc(t.cat)}" data-ch="tField" data-f="cat" data-id="${t.id}" title="Bölüm" style="width:170px">
+    <select data-ch="tField" data-f="unit" data-id="${t.id}" title="Birim">${UNITS.map(u=>`<option ${u===t.unit?'selected':''}>${u}</option>`).join('')}</select>
+    <label class="chk small"><input type="checkbox" data-ch="tAlt" data-id="${t.id}" ${t.alt?'checked':''}> Hastaya seçenek olarak sun</label>
+    <button class="ghost danger" data-act="delT" data-id="${t.id}">Sil</button></div>
+    <table class="vt">${t.variants.map(v=>`<tr><td><input class="vname" value="${esc(v.name)}" data-ch="vField" data-f="name" data-t="${t.id}" data-id="${v.id}"></td>
+      <td class="n" style="width:160px"><input type="number" class="price" min="0" value="${v.price}" data-ch="vField" data-f="price" data-t="${t.id}" data-id="${v.id}"> ₺</td>
+      <td style="width:40px">${t.variants.length>1?`<button class="ghost danger" data-act="delV" data-t="${t.id}" data-id="${v.id}" title="Sil">✕</button>`:''}</td></tr>`).join('')}</table>
+    <button class="ghost small" data-act="addVar" data-t="${t.id}">+ Tür / seçenek ekle</button></div>`;
+}
+
+/* ============ ÖDEME KURALLARI ============ */
+function vRules(){
+  const rs=sortedRules();
+  return `<div class="head"><div><h1>Ödeme kuralları</h1><p class="muted">Tedavi toplamının düştüğü aralık; en fazla taksit, indirim ve peşin indirimini belirler.</p></div></div>
+  <div class="notice warn small">Örnek değerlerdir. Taksit sayılarının bankanızın ve yürürlükteki düzenlemenin izin verdiği sınırla uyuştuğunu, indirimli fiyatların TDB asgari ücret tarifesinin altına inmediğini kontrol edin.</div>
+  <div class="card rules"><h2>Fiyat aralıkları</h2>
+  <div style="overflow-x:auto"><table><thead><tr><th>Alt sınır (₺)</th><th>Üst sınır (₺)<div style="text-transform:none;font-weight:400">boş = ve üzeri</div></th><th>En fazla taksit</th><th>En fazla indirim %</th><th>Peşin ek indirim %</th><th></th></tr></thead><tbody>${
+    rs.map(r=>{const i=S.rules.indexOf(r);return `<tr>
+      <td><input type="number" min="0" value="${r.min}" data-ch="rField" data-f="min" data-i="${i}"></td>
+      <td><input type="number" min="0" value="${noMax(r)?'':r.max}" data-ch="rField" data-f="max" data-i="${i}"></td>
+      <td><input type="number" min="1" value="${r.taksit}" data-ch="rField" data-f="taksit" data-i="${i}"></td>
+      <td><input type="number" min="0" step="0.5" value="${r.indirim}" data-ch="rField" data-f="indirim" data-i="${i}"></td>
+      <td><input type="number" min="0" step="0.5" value="${r.pesin}" data-ch="rField" data-f="pesin" data-i="${i}"></td>
+      <td><button class="ghost danger" data-act="delRule" data-i="${i}">✕</button></td></tr>`}).join('')
+  }</tbody></table></div>
+  <button class="ghost" data-act="addRule">+ Aralık ekle</button>
+  <div id="rulecheck" style="margin-top:10px">${ruleCheck()}</div></div>
+  <div class="grid"><div class="card rules"><h2>Taksit seçenekleri ve vade farkı</h2>
+    <p class="muted small" style="margin-bottom:8px">Burada listelenen taksit sayıları, aralığın izin verdiği üst sınıra kadar hastaya sunulur. Vade farkı: kart komisyonunu karşılamak için eklenen yüzde (0 = vade farksız).</p>
+    <table><thead><tr><th>Taksit sayısı</th><th>Vade farkı %</th><th></th></tr></thead><tbody>${
+      [...S.vade].sort((a,b)=>a.n-b.n).map(v=>{const i=S.vade.indexOf(v);return `<tr><td><input type="number" min="2" value="${v.n}" data-ch="vdField" data-f="n" data-i="${i}"></td><td><input type="number" min="0" step="0.5" value="${v.p}" data-ch="vdField" data-f="p" data-i="${i}"></td><td><button class="ghost danger" data-act="delVade" data-i="${i}">✕</button></td></tr>`}).join('')
+    }</tbody></table><button class="ghost" data-act="addVade">+ Taksit seçeneği ekle</button></div>
+  <div class="card"><h2>Deneme</h2><label>Tedavi toplamı (₺)<input type="number" min="0" value="${ui.deneme}" data-in="deneme"></label><div id="deneme" style="margin-top:10px">${deneme()}</div></div></div>`;
+}
+function ruleCheck(){
+  const rs=sortedRules(),msg=[];
+  if(!rs.length)return `<div class="notice bad small">Hiç aralık yok; taksit ve indirim verilmez.</div>`;
+  if(rs[0].min>0)msg.push(`0 – ${TL(rs[0].min)} arası hiçbir aralığa girmiyor (ilk aralık kullanılır).`);
+  rs.forEach((r,i)=>{const nx=rs[i+1];if(!nx)return;
+    if(noMax(r))msg.push(`${ruleLabel(r)} aralığının üst sınırı boş ama ardından başka aralık var.`);
+    else if(nx.min>r.max)msg.push(`${TL(r.max)} – ${TL(nx.min)} arası boşlukta kalıyor.`);
+    else if(nx.min<r.max)msg.push(`${ruleLabel(r)} ile ${ruleLabel(nx)} çakışıyor.`);});
+  if(!noMax(rs[rs.length-1]))msg.push(`${TL(rs[rs.length-1].max)} üzeri için aralık yok (son aralık kullanılır).`);
+  return msg.length?`<div class="notice warn small">${msg.join('<br>')}</div>`:`<div class="notice ok small">Aralıklar boşluksuz ve çakışmasız.</div>`;
+}
+function deneme(){
+  const c=calc([{qty:1,price:ui.deneme}],100);
+  return `<div class="rulebox">Aralık: <b>${ruleLabel(c.rule)}</b> · en fazla %${c.rule.indirim} indirim → <b>${TL(c.net)}</b></div>
+  <table class="pay">${c.opts.map(o=>`<tr><td>${o.label}<div class="small muted">${o.note}</div></td><td class="n"><b>${TL(o.total)}</b>${o.monthly?`<div class="small">${o.n} × ${TL(o.monthly)}</div>`:''}</td></tr>`).join('')}</table>
+  <p class="small muted" style="margin-top:6px">En fazla indirim uygulanmış haliyle gösterilir.</p>`;
+}
+
+/* ============ KAYIT VE AYARLAR ============ */
+function vData(){
+  const K=S.clinic;
+  let fileBox;
+  if(CL){
+    if(!cloud.users){loadUsers();cloud.users=null}
+    fileBox=`<p class="muted" style="margin-bottom:10px">Kayıtlar ortak bulut veritabanında. Sadece aşağıdaki e-postalar giriş yapıp kayıtları görebilir. Yeni kişi eklediğinizde, o kişi uygulamayı açıp “İlk kez mi giriyorsunuz?” ile kendi şifresini belirler.</p>
+    ${cloud.users?`<table><tbody>${cloud.users.map(u=>`<tr><td>${esc(u.email)}${u.email.toLowerCase()===cloud.user.email.toLowerCase()?' <span class="badge">siz</span>':''}</td><td class="n">${u.email.toLowerCase()===cloud.user.email.toLowerCase()?'':`<button class="ghost danger" data-act="delUser" data-e="${esc(u.email)}">Yetkiyi kaldır</button>`}</td></tr>`).join('')}</tbody></table>`:'<p class="muted small">Yükleniyor…</p>'}
+    <div class="payform" style="margin-top:10px"><label style="flex:1;min-width:220px">Yeni kullanıcının e-postası<input type="email" id="u_email" style="width:100%"></label><button class="pri" data-act="addUser">Yetki ver</button></div>`;
+  }
+  else if(!FS)fileBox=`<div class="notice warn">Bu tarayıcı bilgisayardaki dosyaya otomatik kayıt yapamıyor. Chrome veya Edge ile açarsanız kullanılabilir. Şimdilik düzenli olarak “Yedek indir” yapın.</div>`;
+  else if(fileHandle&&filePerm)fileBox=`<div class="notice ok">Her değişiklik otomatik olarak <b>${esc(fileHandle.name)}</b> dosyasına yazılıyor.</div><div class="btns"><button data-act="newFile">Başka dosyaya taşı</button><button class="danger" data-act="unlinkFile">Dosya bağlantısını kaldır</button></div>`;
+  else if(fileHandle)fileBox=`<div class="notice warn">Kayıt dosyası: <b>${esc(fileHandle.name)}</b> — bu oturum için izin gerekiyor.</div><div class="btns"><button class="pri" data-act="reconnect">Kayıt dosyasına bağlan</button><button class="danger" data-act="unlinkFile">Bağlantıyı kaldır</button></div>`;
+  else fileBox=`<p class="muted" style="margin-bottom:10px">Kayıtlar şu an yalnızca tarayıcının içinde. Bir kayıt dosyası seçerseniz her değişiklik bilgisayarınızdaki o dosyaya da yazılır; tarayıcı temizlense bile kayıtlar kaybolmaz. Önerilen yer: bu programın yanındaki klasör.</p>
+    <div class="btns"><button class="pri" data-act="newFile">Yeni kayıt dosyası oluştur</button><button data-act="openFile">Var olan kayıt dosyasını aç</button></div>`;
+  return `<div class="head"><div><h1>Kayıt ve ayarlar</h1><p class="muted">${S.patients.length} hasta · ${S.plans.length} plan · ${S.payments.length} tahsilat</p></div></div>
+  <div class="card"><h2>Klinik bilgileri (teklif çıktısında görünür)</h2><div class="form">
+    <label class="wide">Klinik adı<input value="${esc(K.name)}" data-ch="clinic" data-f="name"></label>
+    <label>Telefon<input value="${esc(K.phone)}" data-ch="clinic" data-f="phone"></label>
+    <label>Teklif geçerlilik süresi (gün)<input type="number" min="0" value="${esc(K.validDays)}" data-ch="clinic" data-f="validDays"></label>
+    <label class="wide">Adres<input value="${esc(K.address)}" data-ch="clinic" data-f="address"></label>
+    <label class="wide">Teklif alt notu<textarea rows="2" data-ch="clinic" data-f="footer">${esc(K.footer)}</textarea></label></div></div>
+  <div class="card"><h2>${CL?'Kullanıcılar':'Bilgisayardaki kayıt dosyası'}</h2>${fileBox}</div>
+  <div class="card"><h2>Yedek</h2>
+    <p class="muted" style="margin-bottom:10px">Tüm hastalar, planlar, fiyat listesi ve kurallar tek bir dosyaya indirilir. Harici diske / başka bilgisayara koymak için kullanın.${S.meta.lastExport?` Son yedek: ${dateTR(S.meta.lastExport)}.`:''}</p>
+    <div class="btns"><button class="pri" data-act="exportJson">Yedek indir</button><button data-act="importJson">Yedekten geri yükle</button></div></div>
+  <p class="small muted">${CL?'Hasta verisi sağlık verisidir (KVKK özel nitelikli kişisel veri). Telefon ve bilgisayarların ekran kilidi açık olmalı; ortak cihazda işiniz bitince “Çıkış” yapın.':'Hasta verisi sağlık verisidir (KVKK özel nitelikli kişisel veri). Bu program veriyi internete göndermez; bilgisayarın parolalı olması ve yedeklerin güvenli yerde tutulması gerekir.'}</p>`;
+}
+
+/* ============ olaylar ============ */
+const A={
+  nav:el=>go(el.dataset.v),
+  closeDlg,
+  newPatient:()=>patientForm(null),
+  editPatient:el=>patientForm(pById(el.dataset.id)),
+  savePatient:el=>{
+    const name=$('#f_name').value.trim();if(!name){$('#f_name').focus();return}
+    const f={name,phone:$('#f_phone').value.trim(),birth:$('#f_birth').value,note:$('#f_note').value.trim(),kvkk:$('#f_kvkk').checked};
+    let p=pById(el.dataset.id);
+    if(p)Object.assign(p,f);else{p={id:uid(),created:new Date().toISOString(),...f};S.patients.push(p)}
+    save();closeDlg();go('patient',{pid:p.id});
+  },
+  openPatient:el=>go('patient',{pid:el.dataset.id}),
+  delPatient:()=>{const p=pById(ui.pid);if(!confirm(`${p.name} ve tüm planları, tahsilatları silinsin mi? Bu geri alınamaz.`))return;
+    const ids=new Set(plansOf(p.id).map(x=>x.id));S.plans=S.plans.filter(x=>!ids.has(x.id));S.payments=S.payments.filter(x=>x.pid!==p.id);S.patients=S.patients.filter(x=>x!==p);save();go('patients')},
+  newPlan:()=>{const pl={id:uid(),pid:ui.pid,date:today(),title:'Tedavi planı '+(plansOf(ui.pid).length+1),status:'teklif',items:[],discount:0,pay:'tek'};S.plans.push(pl);save();ui.add=null;go('plan',{plan:pl.id})},
+  openPlan:el=>{ui.add=null;go('plan',{plan:el.dataset.id})},
+  copyPlan:()=>{const o=planById(ui.plan);const pl=JSON.parse(JSON.stringify(o));pl.id=uid();pl.title=o.title+' (kopya)';pl.status='teklif';pl.date=today();pl.items.forEach(i=>{i.id=uid();i.done=false});S.plans.push(pl);save();go('plan',{plan:pl.id})},
+  delPlan:()=>{const pl=planById(ui.plan);if(!confirm(`“${pl.title}” silinsin mi?`))return;S.plans=S.plans.filter(x=>x!==pl);S.payments.forEach(x=>{if(x.planId===pl.id)x.planId=''});save();go('patient',{pid:pl.pid})},
+  printPlan,
+  addV:el=>{ui.add.vid=el.dataset.id;render()},
+  tooth:el=>{const n=+el.dataset.n,a=ui.add;a.teeth=a.teeth.includes(n)?a.teeth.filter(x=>x!==n):[...a.teeth,n];render()},
+  addItem:()=>{
+    const pl=planById(ui.plan),a=ui.add,t=tById(a.tid),v=t?.variants.find(v=>v.id===a.vid);if(!v)return;
+    const teeth=[...a.teeth].sort((x,y)=>{const q=n=>[1,2,4,3].indexOf(Math.floor(n/10));return q(x)-q(y)||x-y});
+    pl.items.push({id:uid(),tid:t.id,vid:v.id,name:t.name,vname:v.name,unit:t.unit,price:num(v.price),qty:teeth.length||Math.max(1,Math.round(a.qty)),teeth,note:a.note.trim(),done:false});
+    a.teeth=[];a.qty=1;a.note='';save();render();
+  },
+  itemAlt:el=>{const it=planById(ui.plan).items.find(i=>i.id===el.dataset.id);setVariant(it,el.dataset.v);save();render()},
+  applyOpt:el=>{const pl=planById(ui.plan);pl.items=variantItems(pl.items,el.dataset.m);save();render()},
+  delItem:el=>{const pl=planById(ui.plan);pl.items=pl.items.filter(i=>i.id!==el.dataset.id);save();render()},
+  refreshPrices:()=>{const pl=planById(ui.plan);pl.items.forEach(it=>{const v=tById(it.tid)?.variants.find(v=>v.id===it.vid);if(v){it.price=num(v.price);it.vname=v.name}});save();render()},
+  addPay:()=>{const amt=num($('#pay_amt').value);if(amt<=0){$('#pay_amt').focus();return}
+    S.payments.push({id:uid(),pid:ui.pid,planId:$('#pay_plan').value,date:$('#pay_date').value||today(),amount:amt,method:$('#pay_method').value,note:$('#pay_note').value.trim()});save();render()},
+  delPay:el=>{if(!confirm('Bu tahsilat silinsin mi?'))return;S.payments=S.payments.filter(x=>x.id!==el.dataset.id);save();render()},
+  newT:()=>{const t={id:uid(),cat:'Diğer',name:'Yeni işlem',unit:'adet',alt:false,variants:[{id:uid(),name:'Standart',price:0}]};S.treatments.push(t);save();render();const e=$('#t_'+t.id);e?.scrollIntoView({block:'center'});e?.querySelector('input')?.select()},
+  delT:el=>{const t=tById(el.dataset.id);if(!confirm(`“${t.name}” fiyat listesinden silinsin mi? Kayıtlı planlar etkilenmez.`))return;S.treatments=S.treatments.filter(x=>x!==t);edited();save();render()},
+  addVar:el=>{tById(el.dataset.t).variants.push({id:uid(),name:'Yeni seçenek',price:0});edited();save();render()},
+  delV:el=>{const t=tById(el.dataset.t);t.variants=t.variants.filter(v=>v.id!==el.dataset.id);edited();save();render()},
+  addRule:()=>{const rs=sortedRules(),last=rs[rs.length-1];const min=last?(noMax(last)?last.min+50000:last.max):0;if(last&&noMax(last))last.max=min;S.rules.push({min,max:null,taksit:last?.taksit||1,indirim:last?.indirim||0,pesin:last?.pesin||0});save();render()},
+  delRule:el=>{S.rules.splice(+el.dataset.i,1);save();render()},
+  addVade:()=>{const mx=Math.max(1,...S.vade.map(v=>+v.n));S.vade.push({n:mx+3,p:0});save();render()},
+  delVade:el=>{S.vade.splice(+el.dataset.i,1);save();render()},
+  newFile:async()=>{try{const h=await showSaveFilePicker({suggestedName:'klinik-kayitlari.json',types:[{description:'Klinik kayıt dosyası',accept:{'application/json':['.json']}}]});fileHandle=h;await idbSet('file',h);filePerm=true;await writeFile();render()}catch(e){if(e.name!=='AbortError')alert('Dosya oluşturulamadı: '+e.message)}},
+  openFile:async()=>{try{const [h]=await showOpenFilePicker({types:[{description:'Klinik kayıt dosyası',accept:{'application/json':['.json']}}]});
+    const d=JSON.parse(await (await h.getFile()).text());if(!valid(d)){alert('Bu dosya bir klinik kayıt dosyası değil.');return}
+    if(!confirm(`Dosyadaki kayıtlar (${d.patients.length} hasta) yüklensin mi? Tarayıcıdaki mevcut kayıtların yerini alacak.`))return;
+    if(await h.requestPermission({mode:'readwrite'})!=='granted'){alert('Dosyaya yazma izni verilmedi.');return}
+    S=migrate(d);fileHandle=h;filePerm=true;await idbSet('file',h);save();ui.view='data';render()}catch(e){if(e.name!=='AbortError')alert('Dosya açılamadı: '+e.message)}},
+  reconnect:async()=>{try{if(await fileHandle.requestPermission({mode:'readwrite'})==='granted'){await connectFile();render()}}catch(e){alert('Bağlanılamadı: '+e.message+'\nDosya taşınmış veya silinmiş olabilir; “Kayıt ve ayarlar”dan yeniden seçin.')}},
+  unlinkFile:async()=>{if(!confirm('Dosya bağlantısı kaldırılsın mı? Dosya silinmez, sadece artık ona yazılmaz.'))return;fileHandle=null;filePerm=false;try{await idbSet('file',null)}catch(e){}render()},
+  exportJson:()=>{S.meta.lastExport=new Date().toISOString();save();const b=new Blob([JSON.stringify(S,null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`klinik-yedek-${today()}.json`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000);render()},
+  importJson:()=>$('#importFile').click(),
+  /* bulut: giriş ve kullanıcılar */
+  lmode:el=>{cloud.lastEmail=$('#l_email')?.value||cloud.lastEmail;cloud.mode=el.dataset.m;cloud.msg='';render()},
+  login:async()=>{const email=$('#l_email').value.trim(),password=$('#l_pass').value;cloud.lastEmail=email;
+    if(!email||!password){cloud.msg='E-posta ve şifre gerekli.';return render()}
+    const {data,error}=await cloud.sb.auth.signInWithPassword({email,password});
+    if(error){cloud.msg=/invalid/i.test(error.message)?'E-posta veya şifre hatalı. İlk kez giriyorsanız “İlk kez mi giriyorsunuz?” bağlantısını kullanın.':error.message;return render()}
+    cloud.msg='';await afterLogin(data.user)},
+  signup:async()=>{const email=$('#l_email').value.trim(),p=$('#l_pass').value,p2=$('#l_pass2').value;cloud.lastEmail=email;
+    if(!email)cloud.msg='E-posta gerekli.';else if(p.length<8)cloud.msg='Şifre en az 8 karakter olmalı.';else if(p!==p2)cloud.msg='Şifreler aynı değil.';else cloud.msg='';
+    if(cloud.msg)return render();
+    const {data,error}=await cloud.sb.auth.signUp({email,password:p});
+    if(error){cloud.msg=/registered|exists/i.test(error.message)?'Bu e-postayla zaten hesap var; giriş yapın.':error.message;return render()}
+    if(!data.session){cloud.msg='E-postanıza bir onay bağlantısı gönderildi. Bağlantıya tıkladıktan sonra giriş yapın.';cloud.mode='login';return render()}
+    await afterLogin(data.user)},
+  forgot:async()=>{const email=$('#l_email').value.trim();cloud.lastEmail=email;if(!email){cloud.msg='E-posta gerekli.';return render()}
+    const {error}=await cloud.sb.auth.resetPasswordForEmail(email,{redirectTo:location.href.split('#')[0]});
+    cloud.msg=error?error.message:'Şifre yenileme bağlantısı gönderildi. E-postanızı kontrol edin (gereksiz klasörüne de bakın).';render()},
+  setPass:async()=>{const p=$('#l_p1').value,p2=$('#l_p2').value;
+    if(p.length<8||p!==p2){cloud.msg=p.length<8?'Şifre en az 8 karakter olmalı.':'Şifreler aynı değil.';return render()}
+    const {data,error}=await cloud.sb.auth.updateUser({password:p});if(error){cloud.msg=error.message;return render()}
+    cloud.mode='login';cloud.msg='';history.replaceState(null,'',location.pathname);await afterLogin(data.user)},
+  logout:async()=>{if(cloud.member&&[...entities()].some(([k,v])=>cloud.synced.get(k)!==canon(v)))await push();cloud.mode='login';cloud.msg='';await cloud.sb.auth.signOut()},
+  recheck:()=>afterLogin(cloud.user),
+  retryPush:()=>push(),
+  addUser:async()=>{const e=$('#u_email').value.trim().toLowerCase();if(!/^\S+@\S+\.\S+$/.test(e)){$('#u_email').focus();return}
+    const {error}=await cloud.sb.from('allowed_emails').upsert({email:e});if(error)alert('Eklenemedi: '+error.message);cloud.users=null;render()},
+  delUser:async el=>{if(!confirm(`${el.dataset.e} artık kayıtları göremeyecek. Emin misiniz?`))return;
+    const {error}=await cloud.sb.from('allowed_emails').delete().eq('email',el.dataset.e);if(error)alert('Kaldırılamadı: '+error.message);cloud.users=null;render()}
+};
+function setVariant(it,vid){const v=tById(it.tid)?.variants.find(v=>v.id===vid);if(v){it.vid=v.id;it.vname=v.name;it.price=num(v.price)}}
+function edited(){S.meta.pricesEdited=true}
+const C={
+  addCat:el=>{const t=S.treatments.find(x=>x.cat===el.value);ui.add={tid:t.id,vid:null,teeth:ui.add.teeth,qty:1,note:ui.add.note};render()},
+  addT:el=>{ui.add.tid=el.value;ui.add.vid=null;render()},
+  planTitle:el=>{planById(ui.plan).title=el.value.trim()||'Tedavi planı';save()},
+  planDate:el=>{planById(ui.plan).date=el.value;save()},
+  planStatus:el=>{planById(ui.plan).status=el.value;save();render()},
+  qty:el=>{const it=planById(ui.plan).items.find(i=>i.id===el.dataset.id);it.qty=Math.max(1,Math.round(num(el.value)));save();render()},
+  itemV:el=>{const it=planById(ui.plan).items.find(i=>i.id===el.dataset.id);setVariant(it,el.value);save();render()},
+  done:el=>{planById(ui.plan).items.find(i=>i.id===el.dataset.id).done=el.checked;save();render()},
+  disc:el=>{const pl=planById(ui.plan),mx=calc(pl.items,0).rule.indirim||0;let v=Math.max(0,num(el.value));
+    if(v>mx){ui.discNote=`%${v} istendi; bu tutar aralığında en fazla %${mx} indirim yapılabilir, %${mx} uygulandı.`;v=mx}
+    pl.discount=v;save();render()},
+  pay:el=>{planById(ui.plan).pay=el.value;save();render()},
+  tField:el=>{const t=tById(el.dataset.id),f=el.dataset.f;t[f]=el.value.trim()||(f==='cat'?'Diğer':t[f]);edited();save();if(f!=='name')render()},
+  tAlt:el=>{tById(el.dataset.id).alt=el.checked;edited();save()},
+  vField:el=>{const v=tById(el.dataset.t).variants.find(v=>v.id===el.dataset.id),f=el.dataset.f;v[f]=f==='price'?Math.max(0,num(el.value)):(el.value.trim()||v[f]);edited();save()},
+  rField:el=>{const r=S.rules[+el.dataset.i],f=el.dataset.f;r[f]=f==='max'&&el.value===''?null:Math.max(f==='taksit'?1:0,num(el.value));save();$('#rulecheck').innerHTML=ruleCheck();$('#deneme').innerHTML=deneme()},
+  vdField:el=>{S.vade[+el.dataset.i][el.dataset.f]=Math.max(el.dataset.f==='n'?2:0,num(el.value));save();$('#deneme').innerHTML=deneme()},
+  clinic:el=>{const f=el.dataset.f;S.clinic[f]=f==='validDays'?Math.max(0,Math.round(num(el.value))):el.value.trim();save();$('#brand').innerHTML=`${esc(S.clinic.name||'Diş Kliniği')}<small>Tedavi planı ve ödeme hesaplayıcı</small>`}
+};
+const I={
+  search:el=>{ui.q=el.value;$('#plist').innerHTML=patientRows()},
+  addQty:el=>{ui.add.qty=Math.max(1,num(el.value));$('#addPrev').innerHTML=addPrev()},
+  addNote:el=>{ui.add.note=el.value},
+  deneme:el=>{ui.deneme=Math.max(0,num(el.value));$('#deneme').innerHTML=deneme()}
+};
+document.addEventListener('click',e=>{const el=e.target.closest('[data-act]');if(el&&A[el.dataset.act]){e.preventDefault();A[el.dataset.act](el,e)}});
+document.addEventListener('change',e=>{const el=e.target;if(el.dataset?.ch&&C[el.dataset.ch])C[el.dataset.ch](el,e)});
+document.addEventListener('input',e=>{const el=e.target;if(el.dataset?.in&&I[el.dataset.in])I[el.dataset.in](el,e)});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&$('#dlg').open&&e.target.tagName==='INPUT'){e.preventDefault();$('#dlg [data-act=savePatient]')?.click()}});
+$('#importFile').addEventListener('change',async e=>{
+  const f=e.target.files[0];e.target.value='';if(!f)return;
+  try{const d=JSON.parse(await f.text());if(!valid(d))throw new Error('Bu dosya bir klinik yedeği değil.');
+    if(!confirm(`Yedekteki kayıtlar (${d.patients.length} hasta, ${d.plans?.length||0} plan) yüklensin mi? Mevcut kayıtların yerini alacak.`))return;
+    S=migrate(d);save();go('patients')}catch(err){alert('Yedek yüklenemedi: '+err.message)}
+});
+if(!CL)window.addEventListener('storage',e=>{if(e.key===KEY&&e.newValue){try{S=migrate(JSON.parse(e.newValue));render()}catch(_){}}});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.closest?.('.login')){const b=$('.login button.pri');if(b){e.preventDefault();b.click()}}});
+if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
+
+if(CL)cloudInit();else{render();initFile()}
+</script>
+</body>
+</html>
